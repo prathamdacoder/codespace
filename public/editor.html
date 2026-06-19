@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 CodeSpace Editor</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="editor-page">
+
+    <!-- ===== HEADER ===== -->
+    <header class="editor-header">
+      <div class="editor-header-left">
+
+        <!-- LOGO -->
+        <div class="logo" onclick="window.location.href='/'">
+          <div class="logo-mark">
+            <span class="logo-symbol">&lt;/&gt;</span>
+            <span class="orbit"></span>
+          </div>
+          <div class="logo-text">
+            <span class="logo-name">CodeSpace</span>
+            <span class="logo-tagline">Code · Create · Ship</span>
+          </div>
+        </div>
+
+        <!-- PEN TITLE -->
+        <input
+          type="text"
+          class="title-input"
+          id="penTitle"
+          value="Untitled"
+          placeholder="Pen title..."
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="editor-header-right">
+        <button 
+          class="btn-layout" 
+          id="btnHorizontal"
+          onclick="setLayout('horizontal')" 
+          title="Editors on top, preview on bottom"
+        >☰ Horizontal</button>
+
+        <button 
+          class="btn-layout" 
+          id="btnVertical"
+          onclick="setLayout('vertical')" 
+          title="Editors on left, preview on right"
+        >▐ Vertical</button>
+
+        <button class="btn-save" id="btnSave" onclick="savePen()">
+          💾 Save
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== WORKSPACE ===== -->
+    <div class="editor-workspace layout-horizontal" id="workspace">
+
+      <!-- CODE PANELS -->
+      <div class="panels" id="panels">
+
+        <!-- HTML Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">
+              <span class="dot html-dot"></span>
+              HTML
+            </span>
+          </div>
+          <textarea
+            id="htmlEditor"
+            placeholder="<!-- Write your HTML here -->"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <!-- CSS Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">
+              <span class="dot css-dot"></span>
+              CSS
+            </span>
+          </div>
+          <textarea
+            id="cssEditor"
+            placeholder="/* Write your CSS here */"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+        <!-- JS Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">
+              <span class="dot js-dot"></span>
+              JavaScript
+            </span>
+          </div>
+          <textarea
+            id="jsEditor"
+            placeholder="// Write your JavaScript here"
+            spellcheck="false"
+          ></textarea>
+        </div>
+
+      </div>
+
+      <!-- PREVIEW PANEL -->
+      <div class="preview-container">
+        <div class="preview-header">
+          <span class="preview-label">
+            <span class="preview-dot"></span>
+            Live Preview
+          </span>
+          <button class="btn-refresh" onclick="updatePreview()">
+            🔄 Refresh
+          </button>
+        </div>
+
+        <iframe 
+          id="previewFrame" 
+          sandbox="allow-scripts allow-modals"
+        ></iframe>
+
+        <!-- CONSOLE -->
+        <div class="console-container">
+          <div class="console-header" onclick="toggleConsole()">
+            <span>🖥 Console</span>
+            <span class="console-count" id="consoleCount">0</span>
+          </div>
+          <div class="console-body" id="consoleBody"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== STATUS BAR ===== -->
+    <div class="status-bar">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span id="statusText">Ready</span>
+      </div>
+      <span>Auto-save: ON &nbsp;|&nbsp; Ctrl+S to save &nbsp;|&nbsp; Tab for indent</span>
+    </div>
+
+  </div>
+
+  <script>
+    // ================================
+    // STATE
+    // ================================
+    const penId = window.location.pathname.split('/pen/')[1];
+    let autoSaveTimer  = null;
+    let debounceTimer  = null;
+    let consoleLines   = [];
+    let isLoaded       = false;
+    let consoleVisible = true;
+
+    // ================================
+    // ELEMENTS
+    // ================================
+    const htmlEditor   = document.getElementById('htmlEditor');
+    const cssEditor    = document.getElementById('cssEditor');
+    const jsEditor     = document.getElementById('jsEditor');
+    const previewFrame = document.getElementById('previewFrame');
+    const penTitle     = document.getElementById('penTitle');
+    const btnSave      = document.getElementById('btnSave');
+    const consoleBody  = document.getElementById('consoleBody');
+    const consoleCount = document.getElementById('consoleCount');
+    const statusText   = document.getElementById('statusText');
+    const workspace    = document.getElementById('workspace');
+
+    // ================================
+    // LOAD PEN FROM SERVER
+    // ================================
+    async function loadPen() {
+      try {
+        statusText.textContent = 'Loading...';
+        const res = await fetch(`/api/pens/${penId}`);
+
+        if (!res.ok) {
+          alert('Pen not found!');
+          window.location.href = '/';
+          return;
+        }
+
+        const pen = await res.json();
+
+        penTitle.value   = pen.title  || 'Untitled';
+        htmlEditor.value = pen.html   || '';
+        cssEditor.value  = pen.css    || '';
+        jsEditor.value   = pen.js     || '';
+
+        document.title = `🚀 ${pen.title} - CodeSpace`;
+
+        isLoaded = true;
+        updatePreview();
+        statusText.textContent = 'Loaded successfully';
+
+      } catch (err) {
+        statusText.textContent = 'Failed to load pen';
+        console.error(err);
+      }
+    }
+
+    // ================================
+    // SAVE PEN TO SERVER
+    // ================================
+    async function savePen() {
+      if (!isLoaded) return;
+
+      btnSave.textContent = '⏳ Saving...';
+      btnSave.className = 'btn-save saving';
+      btnSave.disabled = true;
+
+      try {
+        await fetch(`/api/pens/${penId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: penTitle.value || 'Untitled',
+            html:  htmlEditor.value,
+            css:   cssEditor.value,
+            js:    jsEditor.value
+          })
+        });
+
+        btnSave.textContent = '✅ Saved!';
+        btnSave.className = 'btn-save saved';
+        document.title = `🚀 ${penTitle.value} - CodeSpace`;
+        statusText.textContent = 'Saved at ' + new Date().toLocaleTimeString();
+
+      } catch (err) {
+        btnSave.textContent = '❌ Error!';
+        statusText.textContent = 'Save failed';
+      } finally {
+        btnSave.disabled = false;
+        setTimeout(() => {
+          btnSave.textContent = '💾 Save';
+          btnSave.className = 'btn-save';
+        }, 2000);
+      }
+    }
+
+    // ================================
+    // AUTO-SAVE (2 seconds after typing)
+    // ================================
+    function triggerAutoSave() {
+      if (!isLoaded) return;
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(savePen, 2000);
+    }
+
+    // ================================
+    // UPDATE LIVE PREVIEW
+    // ================================
+    function updatePreview() {
+      // Clear console
+      consoleLines = [];
+      renderConsole();
+
+      const html = htmlEditor.value;
+      const css  = cssEditor.value;
+      const js   = jsEditor.value;
+
+      // Build full preview document with console interception
+      const doc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    ${css}
+  </style>
+</head>
+<body>
+  ${html}
+
+  <script>
+    // Intercept console to send messages to parent
+    (function() {
+      function send(level, args) {
+        try {
+          const msg = Array.from(args).map(a => {
+            if (typeof a === 'object') {
+              try { return JSON.stringify(a, null, 2); }
+              catch(e) { return String(a); }
+            }
+            return String(a);
+          }).join(' ');
+
+          window.parent.postMessage({ type: 'console', level, msg }, '*');
+        } catch(e) {}
+      }
+
+      const _log   = console.log.bind(console);
+      const _warn  = console.warn.bind(console);
+      const _error = console.error.bind(console);
+
+      console.log   = function() { send('log',   arguments); _log(...arguments);   };
+      console.warn  = function() { send('warn',  arguments); _warn(...arguments);  };
+      console.error = function() { send('error', arguments); _error(...arguments); };
+      console.info  = function() { send('log',   arguments); _log(...arguments);   };
+
+      window.addEventListener('error', function(e) {
+        send('error', ['Uncaught ' + e.message + ' (line ' + e.lineno + ')']);
+      });
+    })();
+  <\/script>
+
+  <script>
+    try {
+      ${js}
+    } catch(e) {
+      console.error(e.toString());
+    }
+  <\/script>
+</body>
+</html>`;
+
+      previewFrame.srcdoc = doc;
+      statusText.textContent = 'Preview refreshed';
+    }
+
+    // ================================
+    // CONSOLE
+    // ================================
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'console') {
+        consoleLines.push({ level: e.data.level, msg: e.data.msg });
+        renderConsole();
+      }
+    });
+
+    function renderConsole() {
+      consoleCount.textContent = consoleLines.length;
+      consoleBody.innerHTML = consoleLines.map(line =>
+        `<div class="console-line ${line.level}">${escapeHtml(line.msg)}</div>`
+      ).join('');
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
+
+    function toggleConsole() {
+      consoleVisible = !consoleVisible;
+      consoleBody.style.display = consoleVisible ? '' : 'none';
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ================================
+    // LAYOUT SWITCHER
+    // ================================
+    function setLayout(layout) {
+      workspace.className = `editor-workspace layout-${layout}`;
+
+      document.getElementById('btnHorizontal').classList.toggle('active', layout === 'horizontal');
+      document.getElementById('btnVertical').classList.toggle('active',   layout === 'vertical');
+
+      localStorage.setItem('codespace-layout', layout);
+    }
+
+    // Restore saved layout
+    const savedLayout = localStorage.getItem('codespace-layout') || 'horizontal';
+    setLayout(savedLayout);
+
+    // ================================
+    // KEYBOARD SHORTCUTS
+    // ================================
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+S / Cmd+S = Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        savePen();
+      }
+    });
+
+    // Tab key in all textareas
+    document.querySelectorAll('textarea').forEach(ta => {
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const s = ta.selectionStart;
+          const end = ta.selectionEnd;
+          ta.value = ta.value.substring(0, s) + '  ' + ta.value.substring(end);
+          ta.selectionStart = ta.selectionEnd = s + 2;
+        }
+      });
+    });
+
+    // ================================
+    // LIVE TYPING → UPDATE PREVIEW
+    // ================================
+    function onType() {
+      // Debounce: update preview 400ms after user stops typing
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updatePreview, 400);
+
+      // Auto-save 2 seconds after typing
+      triggerAutoSave();
+    }
+
+    htmlEditor.addEventListener('input', onType);
+    cssEditor.addEventListener('input',  onType);
+    jsEditor.addEventListener('input',   onType);
+    penTitle.addEventListener('input',   triggerAutoSave);
+
+    // ================================
+    // START
+    // ================================
+    loadPen();
+  </script>
+</body>
+</html>

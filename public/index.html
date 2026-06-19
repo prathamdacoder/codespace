@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 CodeSpace</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="homepage">
+
+    <!-- HEADER -->
+    <header class="main-header">
+      <div class="logo">
+        <div class="logo-mark">
+          <span class="logo-symbol">&lt;/&gt;</span>
+          <span class="orbit"></span>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">CodeSpace</span>
+          <span class="logo-tagline">Code · Create · Ship</span>
+        </div>
+      </div>
+      <button class="btn-create" onclick="createNewPen()">
+        + New Pen
+      </button>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-stars"></div>
+      <h2>Code Without<br>Limits 🚀</h2>
+      <p>Build and experiment with HTML, CSS & JavaScript in real-time</p>
+      <button class="btn-hero" onclick="createNewPen()">
+        Start Coding →
+      </button>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="gallery">
+      <h3>📁 Your Pens</h3>
+      <div class="pens-grid" id="pensGrid">
+        <div class="loading">Loading pens...</div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // ============ CREATE PEN ============
+    async function createNewPen() {
+      const res = await fetch('/api/pens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Untitled',
+          html: `<div class="container">
+  <h1>Hello, CodeSpace! 🚀</h1>
+  <p>Edit the code panels to see live changes</p>
+  <button onclick="changeColor()">Click Me!</button>
+</div>`,
+          css: `* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  color: white;
+}
+
+.container {
+  text-align: center;
+  padding: 40px;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #a78bfa, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+p {
+  color: #a0aec0;
+  margin-bottom: 24px;
+  font-size: 1.1rem;
+}
+
+button {
+  padding: 12px 32px;
+  font-size: 1rem;
+  border: 2px solid #a78bfa;
+  background: transparent;
+  color: #a78bfa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+button:hover {
+  background: #a78bfa;
+  color: #0f0c29;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(167,139,250,0.4);
+}`,
+          js: `function changeColor() {
+  const colors = [
+    "#a78bfa", "#60a5fa", "#34d399",
+    "#f9ca24", "#fd79a8", "#fdcb6e"
+  ];
+  const random = colors[Math.floor(Math.random() * colors.length)];
+  document.querySelector("h1").style.background = random;
+  document.querySelector("h1").style.webkitBackgroundClip = "text";
+  document.querySelector("h1").style.webkitTextFillColor = "transparent";
+  document.querySelector("button").style.borderColor = random;
+  document.querySelector("button").style.color = random;
+  console.log("Color changed to:", random);
+}`
+        })
+      });
+
+      const pen = await res.json();
+      window.location.href = `/pen/${pen.id}`;
+    }
+
+    // ============ LOAD PENS ============
+    async function loadPens() {
+      const res = await fetch('/api/pens');
+      const pens = await res.json();
+      const grid = document.getElementById('pensGrid');
+
+      if (pens.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🚀</div>
+            <p>No pens yet!</p>
+            <small>Create your first pen to get started</small>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = pens.map(pen => `
+        <div class="pen-card" onclick="window.location.href='/pen/${pen.id}'">
+          <div class="pen-preview">
+            <iframe
+              srcdoc="${escapeAttr(buildPreview(pen.html, pen.css))}"
+              sandbox="allow-scripts"
+              scrolling="no"
+            ></iframe>
+          </div>
+          <div class="pen-info">
+            <h4>${escapeHtml(pen.title)}</h4>
+            <span class="pen-date">${timeAgo(pen.updated_at)}</span>
+          </div>
+          <button 
+            class="btn-delete" 
+            onclick="event.stopPropagation(); deletePen('${pen.id}')"
+            title="Delete pen"
+          >🗑️</button>
+        </div>
+      `).join('');
+    }
+
+    // ============ HELPERS ============
+    function buildPreview(html, css) {
+      return `<html><head><style>*{margin:0;padding:0;box-sizing:border-box;}${css || ''}</style></head><body>${html || ''}</body></html>`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+      if (!str) return '';
+      return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function timeAgo(dateStr) {
+      const now = new Date();
+      const date = new Date(dateStr);
+      const diff = Math.floor((now - date) / 1000);
+
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    async function deletePen(id) {
+      if (!confirm('Delete this pen? This cannot be undone.')) return;
+      await fetch(`/api/pens/${id}`, { method: 'DELETE' });
+      loadPens();
+    }
+
+    // ============ INIT ============
+    loadPens();
+  </script>
+</body>
+</html>
