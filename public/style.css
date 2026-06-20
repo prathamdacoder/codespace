@@ -945,3 +945,261 @@ body {
     opacity: 1; /* Always show delete button on touch devices */
   }
 }
+
+/* ============================================
+   FIX: CUSTOM LOGO + SHARE BUTTON + TOAST
+   ============================================ */
+
+/* Fix blank logo: old ::after was covering the SVG */
+.logo-mark {
+  position: relative !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.45));
+}
+
+/* Remove old logo layers that cover the SVG */
+.logo-mark::before,
+.logo-mark::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Make SVG logo visible */
+.logo-svg {
+  width: 44px;
+  height: 44px;
+  display: block;
+  overflow: visible;
+  position: relative;
+  z-index: 5;
+}
+
+/* Rocket flame animation */
+.flame {
+  transform-origin: center top;
+  animation: flicker 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes flicker {
+  0% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(0.72) scaleX(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Star twinkle animation */
+.star {
+  transform-origin: center;
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.star1 { animation-delay: 0s; }
+.star2 { animation-delay: 0.5s; }
+.star3 { animation-delay: 1s; }
+.star4 { animation-delay: 1.5s; }
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+/* Logo hover launch effect */
+.logo:hover .logo-svg {
+  animation: launch 0.6s ease-out;
+}
+
+@keyframes launch {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(5deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(-3deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+/* Editor share button */
+.btn-share {
+  appearance: none;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #7c3aed, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-share:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.45);
+}
+
+.btn-share:active {
+  transform: translateY(0);
+}
+
+/* Homepage card copy button */
+.btn-copy {
+  position: absolute;
+  top: 10px;
+  right: 52px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  backdrop-filter: blur(4px);
+  z-index: 5;
+}
+
+.pen-card:hover .btn-copy {
+  opacity: 1;
+}
+
+.btn-copy:hover {
+  background: rgba(124, 58, 237, 0.85);
+  border-color: var(--purple);
+  transform: scale(1.08);
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%) translateY(110px);
+  background: linear-gradient(135deg, #1e1e2e, #181825);
+  color: var(--text-primary);
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--purple);
+  box-shadow: 0 8px 30px rgba(124, 58, 237, 0.45);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.35s ease;
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.toast-icon {
+  font-size: 1.2rem;
+}
+
+/* Mobile fixes */
+@media (max-width: 900px) {
+  .btn-share {
+    padding: 7px 14px;
+    font-size: 0.82rem;
+  }
+
+  .toast {
+    bottom: 22px;
+    max-width: 90%;
+    padding: 12px 18px;
+    font-size: 0.86rem;
+  }
+}
+
+/* ============================================
+   BACK TO HOME BUTTON
+   ============================================ */
+
+.btn-back {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-back:hover {
+  background: var(--bg-primary);
+  color: var(--purple);
+  border-color: var(--purple);
+  transform: translateX(-2px);
+  box-shadow: 0 2px 12px rgba(167, 139, 250, 0.2);
+}
+
+.btn-back:active {
+  transform: translateX(0);
+}
+
+/* Mobile responsive */
+@media (max-width: 900px) {
+  .btn-back {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .btn-back {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+  }
+  
+  /* On very small screens, just show the arrow */
+  .btn-back {
+    font-size: 0;
+  }
+  .btn-back::before {
+    content: '←';
+    font-size: 1.1rem;
+  }
+}
