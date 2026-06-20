@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /pen/
+
+Sitemap: https://codespace-exkf.onrender.com/sitemap.xml
