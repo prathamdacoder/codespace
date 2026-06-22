@@ -22,6 +22,19 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23a78bfa'/><stop offset='100%25' stop-color='%2322d3ee'/></linearGradient></defs><path d='M14 8 Q8 8 8 14 L8 34 Q8 40 14 40' stroke='url(%23g)' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M34 8 Q40 8 40 14 L40 34 Q40 40 34 40' stroke='url(%23g)' stroke-width='3' fill='none' stroke-linecap='round'/><path d='M24 14 L20 22 L20 30 L28 30 L28 22 Z' fill='url(%23g)'/><circle cx='24' cy='22' r='2' fill='%23111'/></svg>">
   
   <!-- ============ STYLESHEETS ============ -->
+    <!-- ============ CODEMIRROR (Syntax Highlighting) ============ -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
   <link rel="stylesheet" href="/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
@@ -237,9 +250,74 @@
     // ================================
     // ELEMENTS
     // ================================
-    const htmlEditor   = document.getElementById('htmlEditor');
-    const cssEditor    = document.getElementById('cssEditor');
-    const jsEditor     = document.getElementById('jsEditor');
+   // =============================================
+// CODEMIRROR SETUP (Syntax Highlighting)
+// =============================================
+
+// Replace textareas with CodeMirror editors
+const htmlEditor = CodeMirror.fromTextArea(document.getElementById('htmlEditor'), {
+  mode: 'htmlmixed',
+  theme: 'dracula',
+  lineNumbers: true,
+  lineWrapping: true,
+  autoCloseTags: true,
+  autoCloseBrackets: true,
+  matchBrackets: true,
+  styleActiveLine: true,
+  indentUnit: 2,
+  tabSize: 2,
+  extraKeys: {
+    "Ctrl-S": () => savePen()
+  }
+});
+
+const cssEditor = CodeMirror.fromTextArea(document.getElementById('cssEditor'), {
+  mode: 'css',
+  theme: 'dracula',
+  lineNumbers: true,
+  lineWrapping: true,
+  autoCloseBrackets: true,
+  matchBrackets: true,
+  styleActiveLine: true,
+  indentUnit: 2,
+  tabSize: 2,
+  extraKeys: {
+    "Ctrl-S": () => savePen()
+  }
+});
+
+const jsEditor = CodeMirror.fromTextArea(document.getElementById('jsEditor'), {
+  mode: 'javascript',
+  theme: 'dracula',
+  lineNumbers: true,
+  lineWrapping: true,
+  autoCloseBrackets: true,
+  matchBrackets: true,
+  styleActiveLine: true,
+  indentUnit: 2,
+  tabSize: 2,
+  extraKeys: {
+    "Ctrl-S": () => savePen()
+  }
+});
+
+// Create wrapper objects with .value getter/setter so the rest of the code still works
+function createEditorProxy(cm) {
+  return {
+    get value() { return cm.getValue(); },
+    set value(v) { cm.setValue(v || ''); },
+    addEventListener: (event, handler) => {
+      if (event === 'input') {
+        cm.on('change', handler);
+      }
+    }
+  };
+}
+
+// Wrap them so the existing code still works
+const htmlEditorProxy = createEditorProxy(htmlEditor);
+const cssEditorProxy = createEditorProxy(cssEditor);
+const jsEditorProxy = createEditorProxy(jsEditor);
     const previewFrame = document.getElementById('previewFrame');
     const penTitle     = document.getElementById('penTitle');
     const btnSave      = document.getElementById('btnSave');
@@ -264,10 +342,10 @@
 
         const pen = await res.json();
 
-        penTitle.value   = pen.title  || 'Untitled';
-        htmlEditor.value = pen.html   || '';
-        cssEditor.value  = pen.css    || '';
-        jsEditor.value   = pen.js     || '';
+        penTitle.value = pen.title || 'Untitled';
+htmlEditor.setValue(pen.html || '');
+cssEditor.setValue(pen.css || '');
+jsEditor.setValue(pen.js || '');
 
         document.title = `🚀 ${pen.title} - CodeSpace`;
 
@@ -295,12 +373,12 @@
         await fetch(`/api/pens/${penId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: penTitle.value || 'Untitled',
-            html:  htmlEditor.value,
-            css:   cssEditor.value,
-            js:    jsEditor.value
-          })
+         body: JSON.stringify({
+  title: penTitle.value || 'Untitled',
+  html:  htmlEditor.getValue(),
+  css:   cssEditor.getValue(),
+  js:    jsEditor.getValue()
+})
         });
 
         btnSave.textContent = '✅ Saved!';
@@ -337,9 +415,9 @@
       consoleLines = [];
       renderConsole();
 
-      const html = htmlEditor.value;
-      const css  = cssEditor.value;
-      const js   = jsEditor.value;
+      const html = htmlEditor.getValue();
+const css  = cssEditor.getValue();
+const js   = jsEditor.getValue();
 
       // Build full preview document with console interception
       const doc = `<!DOCTYPE html>
@@ -485,18 +563,8 @@ function showToast(message) {
       }
     });
 
-    // Tab key in all textareas
-    document.querySelectorAll('textarea').forEach(ta => {
-      ta.addEventListener('keydown', (e) => {
-        if (e.key === 'Tab') {
-          e.preventDefault();
-          const s = ta.selectionStart;
-          const end = ta.selectionEnd;
-          ta.value = ta.value.substring(0, s) + '  ' + ta.value.substring(end);
-          ta.selectionStart = ta.selectionEnd = s + 2;
-        }
-      });
-    });
+    
+    
 
     // ================================
     // LIVE TYPING → UPDATE PREVIEW
@@ -510,9 +578,9 @@ function showToast(message) {
       triggerAutoSave();
     }
 
-    htmlEditor.addEventListener('input', onType);
-    cssEditor.addEventListener('input',  onType);
-    jsEditor.addEventListener('input',   onType);
+    htmlEditor.on('change', onType);
+cssEditor.on('change', onType);
+jsEditor.on('change', onType);
     penTitle.addEventListener('input',   triggerAutoSave);
 
     // ================================

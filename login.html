@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - CodeSpace</title>
+  <link rel="stylesheet" href="/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" class="logo-svg" style="width:60px;height:60px;">
+          <defs>
+            <linearGradient id="rocketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#a78bfa"/>
+              <stop offset="50%" stop-color="#60a5fa"/>
+              <stop offset="100%" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <path d="M 14 8 Q 8 8 8 14 L 8 22 Q 8 24 6 24 Q 8 24 8 26 L 8 34 Q 8 40 14 40" stroke="url(#rocketGrad)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M 34 8 Q 40 8 40 14 L 40 22 Q 40 24 42 24 Q 40 24 40 26 L 40 34 Q 40 40 34 40" stroke="url(#rocketGrad)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M 24 14 L 20 22 L 20 30 L 28 30 L 28 22 Z" fill="url(#rocketGrad)"/>
+          <circle cx="24" cy="22" r="2" fill="#11111b"/>
+        </svg>
+      </div>
+      
+      <h1 class="auth-title">Welcome Back!</h1>
+      <p class="auth-subtitle">Log in to your CodeSpace</p>
+      
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
+        </div>
+        
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        
+        <div class="auth-error" id="error"></div>
+        
+        <button type="submit" class="btn-auth" id="submitBtn">
+          🔐 Log In
+        </button>
+      </form>
+      
+      <p class="auth-switch">
+        Don't have an account? <a href="/signup">Sign up</a>
+      </p>
+      
+      <a href="/" class="auth-back">← Back to home</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const error = document.getElementById('error');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.textContent = '';
+      submitBtn.textContent = '⏳ Logging in...';
+      submitBtn.disabled = true;
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          submitBtn.textContent = '✅ Success!';
+          window.location.href = '/';
+        } else {
+          error.textContent = data.error || 'Login failed';
+          submitBtn.textContent = '🔐 Log In';
+          submitBtn.disabled = false;
+        }
+      } catch (err) {
+        error.textContent = 'Network error. Try again.';
+        submitBtn.textContent = '🔐 Log In';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

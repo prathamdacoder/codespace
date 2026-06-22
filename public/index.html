@@ -134,9 +134,10 @@
     <span class="logo-tagline">Code · Create · Ship</span>
   </div>
 </div>
-      <button class="btn-create" onclick="createNewPen()">
-        + New Pen
-      </button>
+      
+       <div class="header-right" id="headerRight">
+  <!-- Filled by JavaScript based on login status -->
+</div>
     </header>
 
     <!-- HERO -->
@@ -318,7 +319,56 @@ button:hover {
     }
 
     // ============ INIT ============
-    loadPens();
+    // =============================================
+// AUTH CHECK & UI UPDATE
+// =============================================
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    
+    const headerRight = document.getElementById('headerRight');
+    
+    if (data.loggedIn) {
+      // Logged in UI
+      const initial = data.user.username.charAt(0).toUpperCase();
+      headerRight.innerHTML = `
+        <div class="user-menu">
+          <span class="user-name">Hey, ${escapeHtml(data.user.username)}!</span>
+          <div class="user-avatar" title="${escapeHtml(data.user.username)}">${initial}</div>
+          <button class="btn-create" onclick="createNewPen()">+ New Pen</button>
+          <button class="btn-logout" onclick="logout()">Log Out</button>
+        </div>
+      `;
+      loadPens();
+    } else {
+      // Not logged in UI
+      headerRight.innerHTML = `
+        <a href="/login" class="btn-login">Log In</a>
+        <a href="/signup" class="btn-signup">Sign Up</a>
+      `;
+      
+      // Show empty gallery message
+      document.getElementById('pensGrid').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔐</div>
+          <p>Sign up to start coding!</p>
+          <small>Create an account to save and share your pens</small>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('Auth check failed:', err);
+  }
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.reload();
+}
+
+// Initialize
+checkAuth();
   </script>
 </body>
 </html>
